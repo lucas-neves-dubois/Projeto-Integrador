@@ -19,6 +19,10 @@ public class Tarefa {
         this.status = "A Fazer";
     }
     
+    public Tarefa(String titulo, String descricao, LocalDate dataEntrega, String prioridade) {
+        this(0, titulo, descricao, dataEntrega, prioridade);
+    }
+    
     public int getId() { return id; }
     public String getTitulo() { return titulo; }
     public String getDescricao() { return descricao; }

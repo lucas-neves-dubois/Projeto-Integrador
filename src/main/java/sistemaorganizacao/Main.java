@@ -1,47 +1,86 @@
 package sistemaorganizacao;
 
-import sistemaorganizacao.dao.TarefaDAO;
-import sistemaorganizacao.model.Tarefa;
-import java.time.LocalDate;
+import sistemaorganizacao.view.LoginPanel;
+import sistemaorganizacao.view.MainFrame;
+import sistemaorganizacao.model.Usuario;
+import sistemaorganizacao.dao.UsuarioDAO;
+
+import javax.swing.*;
+import java.awt.*;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== Sistema de Organização de Tarefas (Versão Simplificada) ===");
+        configurarLookAndFeel();
         
-        TarefaDAO tarefaDAO = new TarefaDAO();
-        
+        SwingUtilities.invokeLater(() -> {
+            JFrame loginFrame = new JFrame("Sistema de Organização");
+            loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            loginFrame.setSize(1300, 900);
+            loginFrame.setResizable(false);
+            loginFrame.setLocationRelativeTo(null);
+
+            LoginPanel loginPanel = new LoginPanel();
+
+            loginPanel.addLoginListener(e -> {
+                String email = loginPanel.getEmail();
+                String senha = loginPanel.getPassword();
+
+                Usuario usuario = validarLogin(email, senha);
+                if (usuario != null) {
+                    loginFrame.dispose();
+                    abrirTelaPrincipal(usuario);
+                } else {
+                    mostrarErroLogin(loginFrame);
+                }
+            });
+
+            loginFrame.add(loginPanel);
+            loginFrame.setVisible(true);
+        });
+    }
+
+    private static void configurarLookAndFeel() {
         try {
-            System.out.println("\nAdicionando tarefas de exemplo...");
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             
-            Tarefa t1 = new Tarefa(1, "Reunião de planejamento", 
-                    "Discutir objetivos do trimestre", 
-                    LocalDate.now().plusDays(2), "Alta");
+            // Configurações de tema escuro
+            UIManager.put("Panel.background", new Color(50, 50, 50));
+            UIManager.put("OptionPane.background", new Color(50, 50, 50));
+            UIManager.put("OptionPane.messageForeground", Color.WHITE);
             
-            Tarefa t2 = new Tarefa(2, "Atualizar documentação", 
-                    "Revisar manual do usuário", 
-                    LocalDate.now().plusDays(5), "Média");
-            
-            tarefaDAO.adicionarTarefa(t1);
-            tarefaDAO.adicionarTarefa(t2);
-            
-            System.out.println("Tarefas adicionadas com sucesso!");
-            
-            System.out.println("\nLista de Tarefas:");
-            System.out.println("ID | Título               | Status   | Data Entrega | Prioridade");
-            System.out.println("------------------------------------------------------------");
-            
-            for (Tarefa t : tarefaDAO.listarTarefas()) {
-                System.out.printf("%2d | %-20s | %-8s | %12s | %-8s%n",
-                        t.getId(),
-                        t.getTitulo(),
-                        t.getStatus(),
-                        t.getDataEntrega(),
-                        t.getPrioridade());
-            }
-            
+            System.setProperty("awt.useSystemAAFontSettings", "on");
+            System.setProperty("swing.aatext", "true");
         } catch (Exception e) {
-            System.err.println("Erro no sistema: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static Usuario validarLogin(String email, String senha) {
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
+        Usuario usuario = usuarioDAO.buscarPorEmail(email);
+        
+        if (usuario != null && usuarioDAO.verificarSenha(usuario.getId(), senha)) {
+            return usuario;
+        }
+        return null;
+    }
+
+    private static void mostrarErroLogin(JFrame parent) {
+        UIManager.put("OptionPane.background", new Color(60, 60, 60));
+        UIManager.put("Panel.background", new Color(60, 60, 60));
+        UIManager.put("OptionPane.messageForeground", Color.WHITE);
+        
+        JOptionPane.showMessageDialog(parent, 
+            "Credenciais inválidas. Por favor, tente novamente.", 
+            "Erro de Login", 
+            JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static void abrirTelaPrincipal(Usuario usuario) {
+        SwingUtilities.invokeLater(() -> {
+            MainFrame frame = new MainFrame(usuario);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
     }
 }
