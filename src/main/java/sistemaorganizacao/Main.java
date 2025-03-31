@@ -2,11 +2,14 @@ package sistemaorganizacao;
 
 import sistemaorganizacao.view.LoginPanel;
 import sistemaorganizacao.view.MainFrame;
+import sistemaorganizacao.dao.DatabaseConnection;
 import sistemaorganizacao.model.Usuario;
-import sistemaorganizacao.dao.UsuarioDAO;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class Main {
     public static void main(String[] args) {
@@ -43,7 +46,6 @@ public class Main {
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
             
-            // Configurações de tema escuro
             UIManager.put("Panel.background", new Color(50, 50, 50));
             UIManager.put("OptionPane.background", new Color(50, 50, 50));
             UIManager.put("OptionPane.messageForeground", Color.WHITE);
@@ -56,11 +58,23 @@ public class Main {
     }
 
     private static Usuario validarLogin(String email, String senha) {
-        UsuarioDAO usuarioDAO = new UsuarioDAO();
-        Usuario usuario = usuarioDAO.buscarPorEmail(email);
-        
-        if (usuario != null && usuarioDAO.verificarSenha(usuario.getId(), senha)) {
-            return usuario;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String sql = "SELECT * FROM usuarios WHERE email = ? AND senha = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, email);
+            stmt.setString(2, senha);
+
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return new Usuario(
+                    rs.getInt("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("perfil")
+                );
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }

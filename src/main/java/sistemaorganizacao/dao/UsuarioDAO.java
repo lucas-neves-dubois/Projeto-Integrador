@@ -1,39 +1,48 @@
 package sistemaorganizacao.dao;
 
 import sistemaorganizacao.model.Usuario;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.*;
 
 public class UsuarioDAO {
-    private static Map<Integer, Usuario> usuarios = new HashMap<>();
-    private static Map<Integer, String> senhas = new HashMap<>();
-    
-    static {
-        Usuario admin = new Usuario(1, "Administrador", "admin@email.com", "Administrador");
-        usuarios.put(1, admin);
-        senhas.put(1, "admin123");
+    public void atualizarUsuario(Usuario usuario) throws SQLException {
+        String sql = "UPDATE usuarios SET nome = ?, email = ? WHERE id = ?";
         
-        Usuario comum = new Usuario(2, "Usuário Comum", "usuario@email.com", "Comum");
-        usuarios.put(2, comum);
-        senhas.put(2, "123456");
-    }
-    
-    public void atualizarUsuario(Usuario usuario) {
-        usuarios.put(usuario.getId(), usuario);
-    }
-
-    public void atualizarSenha(int usuarioId, String novaSenha) {
-        senhas.put(usuarioId, novaSenha);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, usuario.getNome());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setInt(3, usuario.getId());
+            stmt.executeUpdate();
+        }
     }
 
-    public boolean verificarSenha(int usuarioId, String senha) {
-        return senhas.getOrDefault(usuarioId, "").equals(senha);
+    public void atualizarSenha(int usuarioId, String novaSenha) throws SQLException {
+        String sql = "UPDATE usuarios SET senha = ? WHERE id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, novaSenha);
+            stmt.setInt(2, usuarioId);
+            stmt.executeUpdate();
+        }
     }
-    
-    public Usuario buscarPorEmail(String email) {
-        return usuarios.values().stream()
-            .filter(u -> u.getEmail().equalsIgnoreCase(email))
-            .findFirst()
-            .orElse(null);
+
+    public boolean verificarSenha(int usuarioId, String senha) throws SQLException {
+        String sql = "SELECT senha FROM usuarios WHERE id = ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, usuarioId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                String senhaArmazenada = rs.getString("senha");
+                return senhaArmazenada.equals(senha);
+            }
+            return false;
+        }
     }
 }

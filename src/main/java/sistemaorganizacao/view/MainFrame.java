@@ -5,6 +5,7 @@ import sistemaorganizacao.model.Tarefa;
 import sistemaorganizacao.dao.TarefaDAO;
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 import java.util.List;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
 
@@ -13,7 +14,7 @@ public class MainFrame extends JFrame {
     private KanbanPanel kanbanPanel;
     private CalendarioPanel calendarioPanel;
     private Usuario usuario;
-    private final Color GRAY_BORDER_COLOR = new Color(100, 100, 100);
+    
 
     public MainFrame(Usuario usuario) {
         super("Sistema de Organização de Tarefas");
@@ -24,9 +25,11 @@ public class MainFrame extends JFrame {
         setResizable(false);
         setLocationRelativeTo(null);
         
+        
+        
         configurarTemaEscuro();
         
-        List<Tarefa> tarefas = carregarTarefas();
+        List<Tarefa> tarefas = carregarTarefasDoBanco();
         
         perfilPanel = new PerfilPanel(usuario);
         kanbanPanel = new KanbanPanel(tarefas, usuario);
@@ -42,15 +45,15 @@ public class MainFrame extends JFrame {
         centerPanel.addTab("Kanban", new JScrollPane(kanbanPanel));
         centerPanel.addTab("Calendário", calendarioPanel);
         centerPanel.setUI(new BasicTabbedPaneUI() {
-            @Override
-            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
-                Graphics2D g2 = (Graphics2D)g.create();
-                g2.setColor(GRAY_BORDER_COLOR);
-                g2.drawLine(0, centerPanel.getHeight()-1, 
-                           centerPanel.getWidth(), centerPanel.getHeight()-1);
-                g2.dispose();
-            }
-        });
+        @Override
+        protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+            Graphics2D g2 = (Graphics2D)g.create();
+            g2.setColor(GRAY_BORDER_COLOR);
+            g2.drawLine(0, centerPanel.getHeight()-1, 
+                       centerPanel.getWidth(), centerPanel.getHeight()-1);
+            g2.dispose();
+        }
+    });
 
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(new Color(50, 50, 50));
@@ -65,10 +68,18 @@ public class MainFrame extends JFrame {
         add(mainPanel);
     }
     
-    private List<Tarefa> carregarTarefas() {
-        TarefaDAO tarefaDAO = new TarefaDAO();
-        return tarefaDAO.listarTarefas();
+
+    private List<Tarefa> carregarTarefasDoBanco() {
+        try {
+            TarefaDAO tarefaDAO = new TarefaDAO();
+            return tarefaDAO.listarTarefas();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar tarefas: " + e.getMessage(), 
+                "Erro", JOptionPane.ERROR_MESSAGE);
+            return new java.util.ArrayList<>();
+        }
     }
+    private final Color GRAY_BORDER_COLOR = new Color(100, 100, 100);
 
     private void configurarTemaEscuro() {
         try {
@@ -111,4 +122,8 @@ public class MainFrame extends JFrame {
             e.printStackTrace();
         }
     }
+    
+    
+    
+    
 }

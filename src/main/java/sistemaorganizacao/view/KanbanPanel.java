@@ -9,6 +9,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
@@ -75,6 +76,30 @@ public class KanbanPanel extends JPanel {
             }
             
             this.statusCountCache = counts;
+            
+            new SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    try {
+                        Map<String, Integer> dbCounts = new HashMap<>();
+                        dbCounts.put("A Fazer", tarefaDAO.contarTarefasPorStatus("A Fazer"));
+                        dbCounts.put("Em Progresso", tarefaDAO.contarTarefasPorStatus("Em Progresso"));
+                        dbCounts.put("Concluído", tarefaDAO.contarTarefasPorStatus("Concluído"));
+                        
+                        if(!dbCounts.equals(statusCountCache)) {
+                            statusCountCache = dbCounts;
+                            SwingUtilities.invokeLater(() -> {
+                                if(perfilPanel != null) {
+                                    perfilPanel.atualizarEstatisticas(statusCountCache);
+                                }
+                            });
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+            }.execute();
             
             if(perfilPanel != null) {
                 perfilPanel.atualizarEstatisticas(counts);
@@ -352,28 +377,40 @@ public class KanbanPanel extends JPanel {
         Tarefa novaTarefa = dialog.showDialog();
 
         if (novaTarefa != null) {
-            tarefaDAO.adicionarTarefa(novaTarefa);
-            tarefas = tarefaDAO.listarTarefas();
-            
-            atualizarEstatisticasLocal(null, novaTarefa.getStatus());
-            atualizarColunas();
-            
-            if (calendarioPanel != null) {
-                calendarioPanel.atualizarTarefas(tarefas);
+            try {
+                tarefaDAO.adicionarTarefa(novaTarefa);
+                tarefas = tarefaDAO.listarTarefas();
+                
+                atualizarEstatisticasLocal(null, novaTarefa.getStatus());
+                atualizarColunas();
+                
+                if (calendarioPanel != null) {
+                    calendarioPanel.atualizarTarefas(tarefas);
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Erro ao salvar tarefa: " + e.getMessage(), 
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
         }
     }
 
     private void moveToStatus(Tarefa task, String status) {
-        String statusAnterior = task.getStatus();
-        tarefaDAO.mudarStatusTarefa(task.getId(), status);
-        task.setStatus(status);
-        
-        atualizarEstatisticasLocal(statusAnterior, status);
-        atualizarColunas();
-        
-        if (calendarioPanel != null) {
-            calendarioPanel.atualizarTarefas(tarefas);
+        try {
+            String statusAnterior = task.getStatus();
+            tarefaDAO.mudarStatusTarefa(task.getId(), status);
+            task.setStatus(status);
+            
+            atualizarEstatisticasLocal(statusAnterior, status);
+            atualizarColunas();
+            
+            if (calendarioPanel != null) {
+                calendarioPanel.atualizarTarefas(tarefas);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao atualizar status: " + e.getMessage(), 
+                "Erro", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
         }
     }
 
@@ -386,16 +423,23 @@ public class KanbanPanel extends JPanel {
         dialog.setSize(500, 600);
         dialog.setResizable(false);
 
+        
         Tarefa tarefaEditada = dialog.showDialog();
 
         if (tarefaEditada != null) {
-            tarefaDAO.atualizarTarefa(tarefaEditada);
-            tarefas = tarefaDAO.listarTarefas();
-            
-            atualizarColunas();
-            
-            if (calendarioPanel != null) {
-                calendarioPanel.atualizarTarefas(tarefas);
+            try {
+                tarefaDAO.atualizarTarefa(tarefaEditada);
+                tarefas = tarefaDAO.listarTarefas();
+                
+                atualizarColunas();
+                
+                if (calendarioPanel != null) {
+                    calendarioPanel.atualizarTarefas(tarefas);
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Erro ao editar tarefa: " + e.getMessage(), 
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
         }
     }
@@ -418,15 +462,21 @@ public class KanbanPanel extends JPanel {
             options[1]);
         
         if (confirm == JOptionPane.YES_OPTION) {
-            String statusAnterior = task.getStatus();
-            tarefaDAO.excluirTarefa(task.getId());
-            tarefas = tarefaDAO.listarTarefas();
-            
-            atualizarEstatisticasLocal(statusAnterior, null);
-            atualizarColunas();
-            
-            if (calendarioPanel != null) {
-                calendarioPanel.atualizarTarefas(tarefas);
+            try {
+                String statusAnterior = task.getStatus();
+                tarefaDAO.excluirTarefa(task.getId());
+                tarefas = tarefaDAO.listarTarefas();
+                
+                atualizarEstatisticasLocal(statusAnterior, null);
+                atualizarColunas();
+                
+                if (calendarioPanel != null) {
+                    calendarioPanel.atualizarTarefas(tarefas);
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Erro ao excluir tarefa: " + e.getMessage(), 
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
         }
         

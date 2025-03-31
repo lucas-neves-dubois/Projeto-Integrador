@@ -1,8 +1,14 @@
 package sistemaorganizacao.view;
 
+import sistemaorganizacao.dao.DatabaseConnection;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class LoginPanel extends JPanel {
     private JTextField emailField;

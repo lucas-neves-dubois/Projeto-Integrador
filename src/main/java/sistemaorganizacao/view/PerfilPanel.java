@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.SQLException;
 import java.util.Map;
 
 public class PerfilPanel extends JPanel {
@@ -119,11 +120,11 @@ public class PerfilPanel extends JPanel {
         editDialog.setModal(true);
         editDialog.setLayout(new BorderLayout());
         editDialog.getContentPane().setBackground(new Color(50, 50, 50));
-        editDialog.setSize(400, 500);
+        editDialog.setSize(400, 500); 
         editDialog.setResizable(false);
         
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 20, 30));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 20, 30)); 
         formPanel.setBackground(new Color(50, 50, 50));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -163,7 +164,7 @@ public class PerfilPanel extends JPanel {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(new Color(50, 50, 50));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0)); 
         
         JButton saveButton = criarBotao("Salvar", new Color(0, 150, 136), e -> {
             String novoNome = nomeField.getText().trim();
@@ -185,8 +186,13 @@ public class PerfilPanel extends JPanel {
                     return;
                 }
                 
-                if (!usuarioDAO.verificarSenha(usuario.getId(), senhaAtual)) {
-                    showError(editDialog, "Senha atual incorreta!");
+                try {
+                    if (!usuarioDAO.verificarSenha(usuario.getId(), senhaAtual)) {
+                        showError(editDialog, "Senha atual incorreta!");
+                        return;
+                    }
+                } catch (SQLException ex) {
+                    showError(editDialog, "Erro ao verificar senha: " + ex.getMessage());
                     return;
                 }
             }
@@ -194,15 +200,19 @@ public class PerfilPanel extends JPanel {
             usuario.setNome(novoNome);
             usuario.setEmail(novoEmail);
 
-            usuarioDAO.atualizarUsuario(usuario);
-            
-            if (alterarSenha) {
-                usuarioDAO.atualizarSenha(usuario.getId(), novaSenha);
+            try {
+                usuarioDAO.atualizarUsuario(usuario);
+                
+                if (alterarSenha) {
+                    usuarioDAO.atualizarSenha(usuario.getId(), novaSenha);
+                }
+                
+                updateUserInfo();
+                editDialog.dispose();
+                showSuccess(editDialog, "Perfil atualizado com sucesso!");
+            } catch (SQLException ex) {
+                showError(editDialog, "Erro ao atualizar perfil: " + ex.getMessage());
             }
-            
-            updateUserInfo();
-            editDialog.dispose();
-            showSuccess(editDialog, "Perfil atualizado com sucesso!");
         });
 
         JButton cancelButton = criarBotao("Cancelar", new Color(100, 100, 100), e -> editDialog.dispose());
@@ -445,6 +455,10 @@ public class PerfilPanel extends JPanel {
         avatarLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
     }
 
+    private Color getPerfilColor(String perfil) {
+        return Color.WHITE;
+    }
+
     public void setUsuario(Usuario usuario) {
         if (usuario == null) {
             throw new IllegalArgumentException("Usuário não pode ser nulo");
@@ -464,6 +478,11 @@ public class PerfilPanel extends JPanel {
     }
 
     private int contarTarefasPorStatus(String status) {
-        return new TarefaDAO().contarTarefasPorStatus(status);
+        try {
+            return new TarefaDAO().contarTarefasPorStatus(status);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 }
