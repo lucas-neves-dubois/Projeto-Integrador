@@ -1,0 +1,4 @@
+sistemaorganizacao\Main.class
+sistemaorganizacao\model\Tarefa.class
+sistemaorganizacao\dao\TarefaDAO.class
+sistemaorganizacao\model\Usuario.class
